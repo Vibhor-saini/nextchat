@@ -8,11 +8,20 @@ use App\Models\Message;
 
 class Conversation extends Model
 {
-    protected $fillable = ['type'];
+    protected $fillable = [
+        'type',
+        'name'
+    ];
+
 
     public function users()
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(
+            User::class,           // kis model se relation
+            'conversation_user',   // pivot table
+            'conversation_id',     // current model ka FK
+            'user_id'              // related model ka FK
+        );
     }
 
     public function messages()

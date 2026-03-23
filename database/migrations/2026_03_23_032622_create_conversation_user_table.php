@@ -13,17 +13,11 @@ return new class extends Migration
     {
         Schema::create('conversation_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('conversation_id')
-                ->constrained()
-                ->cascadeOnDelete();
 
-            $table->foreignId('user_id')
-                ->constrained()
-                ->cascadeOnDelete();
+            $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
             $table->timestamps();
-
-            // Prevent duplicate entries
-            $table->unique(['conversation_id', 'user_id']);
         });
     }
 

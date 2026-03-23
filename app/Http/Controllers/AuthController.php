@@ -28,12 +28,12 @@ class AuthController extends Controller
                 return back()->withErrors(['email' => 'Account inactive']);
             }
 
-            // ROLE BASED REDIRECT
-            if ($user->role === 'admin') {
-                return redirect('/admin/dashboard');
-            }
+            // // ROLE BASED REDIRECT
+            // if ($user->role === 'admin') {
+            //     return view('admin.chat.index');
+            // }
 
-            return redirect('/chat');
+            return redirect('/chat'); 
         }
 
         return back()->withErrors(['email' => 'Invalid credentials']);

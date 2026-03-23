@@ -1,1 +1,3 @@
-<h1>Chat Page</h1>
+<h2>User Chat</h2>
+
+@include('components.chat-list', ['conversations' => $conversations])

@@ -2,43 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Message;
+use Inertia\Inertia;
 
 class ChatController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
+        $selectedId = $request->query('selected');
 
         $conversations = $user->conversations()
-            ->with(['users', 'latestMessage.sender'])
+            ->with([
+                'users' => fn($q) => $q->where('users.id', '!=', $user->id)->select('users.id', 'name'),
+                'latestMessage'
+            ])
+
+            ->orderBy('updated_at', 'desc') 
             ->get();
 
-        $connectedUserIds = [];
+        $otherUsers = User::where('id', '!=', $user->id)
+            ->whereDoesntHave('conversations', function ($query) use ($user) {
+                $query->whereHas('users', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            })
+            ->select('id', 'name')
+            ->get();
 
-        foreach ($conversations as $conv) {
-            foreach ($conv->users as $u) {
-                if ($u->id != $user->id) {
-                    $connectedUserIds[] = $u->id;
-                }
+        $chatHistory = [];
+        if ($selectedId) {
+            $conversation = $user->conversations()
+                ->whereHas('users', fn($q) => $q->where('user_id', $selectedId))
+                ->first();
+
+            if ($conversation) {
+                $chatHistory = $conversation->messages()
+                    ->with('sender:id,name')
+                    ->orderBy('created_at', 'asc')
+                    ->get();
             }
         }
 
-        $connectedUserIds = array_unique($connectedUserIds);
+        $view = $user->role === 'admin' ? 'Admin/Chat/Index' : 'Chat/Index';
 
-        $otherUsers = \App\Models\User::where('id', '!=', $user->id)
-            ->whereNotIn('id', $connectedUserIds)
-            ->get();
-
-        //  ROLE BASED VIEW
-        if ($user->role === 'admin') {
-            return view('admin.chat.index', compact('conversations', 'otherUsers'));
-        }
-
-        return view('chat.index', compact('conversations', 'otherUsers'));
+        return Inertia::render($view, [
+            'conversations' => $conversations,
+            'otherUsers' => $otherUsers,
+            'authUser' => $user,
+            'chatHistory' => $chatHistory,
+        ]);
     }
 
     /**
@@ -64,26 +81,32 @@ class ChatController extends Controller
      */
     public function send(Request $request)
     {
-        // Validation
         $request->validate([
-            'conversation_id' => 'required|exists:conversations,id',
-            'message' => 'required|string|min:1'
+            'receiver_id' => 'required|exists:users,id',
+            'message' => 'required|string'
         ]);
 
-        $user = Auth::user();
+        $authUser = Auth::user();
+        $receiverId = $request->receiver_id;
 
-        // Security: user must belong to this conversation
-        $conversation = $user->conversations()
-            ->findOrFail($request->conversation_id);
+        $conversation = $authUser->conversations()
+            ->where('type', 'private')
+            ->whereHas('users', function ($q) use ($receiverId) {
+                $q->where('user_id', $receiverId);
+            })->first();
 
-        //  Create message
+        if (!$conversation) {
+            $conversation = \App\Models\Conversation::create(['type' => 'private']);
+            $conversation->users()->attach([$authUser->id, $receiverId]);
+        }
+
         Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id' => $user->id,
+            'sender_id' => $authUser->id,
             'message' => $request->message
         ]);
 
-        return back()->with('success', 'Message sent');
+        return back(); 
     }
 
     // All users

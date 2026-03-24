@@ -8,7 +8,7 @@ use App\Http\Controllers\ChatController;
 use Inertia\Inertia;
 
 Route::get('/login', [AuthController::class, 'showLogin']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout']);
 
 

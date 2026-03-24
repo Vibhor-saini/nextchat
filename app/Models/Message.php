@@ -3,22 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Conversation;
 
 class Message extends Model
 {
     protected $fillable = [
         'conversation_id',
-        'user_id',
-        'body'
+        'sender_id',
+        'message'
     ];
 
-    public function user()
+    public function sender()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(
+            User::class,     // kis model se relation
+            'sender_id'      // foreign key
+        );
     }
 
     public function conversation()
     {
-        return $this->belongsTo(Conversation::class);
+        return $this->belongsTo(
+            Conversation::class,  // kis model se relation
+            'conversation_id'     // foreign key
+        );
     }
 }

@@ -23,13 +23,17 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role'
+        'role',
+        'is_active'
     ];
 
     public function conversations()
     {
         return $this->belongsToMany(
-            Conversation::class,'conversation_user','user_id','conversation_id'
+            Conversation::class,
+            'conversation_user',
+            'user_id',
+            'conversation_id'
         );
     }
 

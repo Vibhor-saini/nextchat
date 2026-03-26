@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +11,6 @@ use Inertia\Inertia;
 
 class ChatController extends Controller
 {
-
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -26,13 +26,17 @@ class ChatController extends Controller
             ->get();
 
         $otherUsers = User::where('id', '!=', $user->id)
-            ->whereDoesntHave('conversations', function ($query) use ($user) {
-                $query->whereHas('users', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
+        ->whereNotIn('id', function($query) use ($user) {
+            $query->select('conversation_user.user_id')
+                ->from('conversation_user')
+                ->whereIn('conversation_user.conversation_id', function($q) use ($user) {
+                    $q->select('conversation_user.conversation_id')
+                        ->from('conversation_user')
+                        ->where('conversation_user.user_id', $user->id);
                 });
-            })
-            ->select('id', 'name')
-            ->get();
+        })
+        ->select('id', 'name')
+        ->get();
 
         $chatHistory = [];
         if ($selectedId) {
@@ -100,11 +104,13 @@ class ChatController extends Controller
             $conversation->users()->attach([$authUser->id, $receiverId]);
         }
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $authUser->id,
             'message' => $request->message
         ]);
+
+        event(new MessageSent($message));
 
         return back(); 
     }
@@ -112,12 +118,10 @@ class ChatController extends Controller
     // All users
     public function allUsers()
     {
-        $users = \App\Models\User::where('id', '!=', auth()->id())->get();
+        $users = User::where('id', '!=', auth()->id())->get();
 
         return view('chat.users', compact('users'));
     }
-
-
 
     //start chat---------
     public function startChat($userId)

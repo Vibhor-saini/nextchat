@@ -22,18 +22,16 @@ class AuthController extends Controller
 
             $user = Auth::user();
 
-            // inactive check
             if (!$user->is_active) {
                 Auth::logout();
                 return back()->withErrors(['email' => 'Account inactive']);
             }
 
-            // // ROLE BASED REDIRECT
-            // if ($user->role === 'admin') {
-            //     return view('admin.chat.index');
-            // }
+            if ($user->role === 'admin') {
+                return redirect('/admin/chat');
+            }
 
-            return redirect('/chat'); 
+            return redirect('/chat');
         }
 
         return back()->withErrors(['email' => 'Invalid credentials']);

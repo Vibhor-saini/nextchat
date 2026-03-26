@@ -9,14 +9,14 @@ use Inertia\Inertia;
 
 Route::get('/login', [AuthController::class, 'showLogin']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/logout', [AuthController::class, 'logout']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('login');
 
 
 
 // Admin routes
 Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/admin/chat', [ChatController::class, 'index']);
+    Route::post('admin/users', [UserController::class, 'store'])->name('users.store');
 });
 
 // User routes

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMemo } from 'react';
 import { router } from '@inertiajs/react';
 
 export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAdmin = false, onAddUser, onUserSelect }) {
@@ -7,17 +8,19 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
   const [activeNav, setActiveNav] = useState("chat");
   const [mobileRailOpen, setMobileRailOpen] = useState(false);
 
-  const preparedUsers = users.map(user => ({
-    ...user,
-    sortTimestamp: user.timestamp || (user.created_at ? new Date(user.created_at).getTime() : 0)
-  })).sort((a, b) => b.sortTimestamp - a.sortTimestamp);
+  const displayUsers = useMemo(() => {
+    const prepared = users.map(user => ({
+      ...user,
+      sortTimestamp: user.timestamp || (user.created_at ? new Date(user.created_at).getTime() : 0)
+    })).sort((a, b) => b.sortTimestamp - a.sortTimestamp);
 
-  const filteredUsers = preparedUsers.filter(user =>
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const filtered = prepared.filter(user =>
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-  const recentUsers = filteredUsers.filter(u => u.lastMessage);
-  const displayUsers = activeTab === 'recent' ? (recentUsers.length > 0 ? recentUsers : filteredUsers) : filteredUsers;
+    const recentUsers = filtered.filter(u => u.lastMessage);
+    return activeTab === 'recent' ? (recentUsers.length > 0 ? recentUsers : filtered) : filtered;
+  }, [users, searchQuery, activeTab]);
 
   const handleUserClick = (user) => {
     onSelectUser(user);
@@ -127,14 +130,14 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
     </div>
   );
 
-  const UserListPanel = () => (
+  // Inlined user list panel — NOT a nested component definition, to prevent remounting on state changes
+  const userListPanel = (
     <div
       className="w-full md:w-72 bg-indigo-50 h-full flex flex-col border-r border-indigo-100 shrink-0"
       style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-        {/* Hamburger — mobile only */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileRailOpen(true)}
@@ -299,14 +302,14 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
 
       {/* Mobile: user list always visible */}
       <div className="md:hidden flex h-full w-full shrink-0">
-        <UserListPanel />
+        {userListPanel}
       </div>
 
       {/* Desktop: icon rail + user list always visible */}
       <div className="hidden md:flex h-full shrink-0">
         <IconRail />
-        <UserListPanel />
+        {userListPanel}
       </div>
-    </>
+    </> 
   );
 }

@@ -13,7 +13,7 @@ export default function useChat(routePath = '/chat') {
     }
   }, [JSON.stringify(chatHistory)]);
 
-  // ✅ NEW: realtime listener
+  //listener
   useEffect(() => {
     if (!selectedUser || !selectedUser.conversation_id) return;
 
@@ -23,7 +23,7 @@ export default function useChat(routePath = '/chat') {
     const channel = window.Echo.private(channelName);
 
 
-    // const channel = window.Echo.private(`conversation.${selectedUser.conversation_id}`);
+// const channel = window.Echo.private(`conversation.${selectedUser.conversation_id}`);
 // channel.listen('.message.sent', e => console.log("Realtime:", e));
 
 // channel.error(err => console.log("Echo error:", err));

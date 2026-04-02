@@ -47,18 +47,18 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
   const getAvatarColors = (name) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
 
   const navItems = [
-    {
-      id: 'chat', title: 'Chat',
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    },
-    {
-      id: 'search', title: 'Search',
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-    },
-    {
-      id: 'activity', title: 'Activity',
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    },
+    // {
+    //   id: 'chat', title: 'Chat',
+    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    // },
+    // {
+    //   id: 'search', title: 'Search',
+    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    // },
+    // {
+    //   id: 'activity', title: 'Activity',
+    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    // },
   ];
 
   const IconRail = ({ onClose }) => (
@@ -225,7 +225,7 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
                   onClick={() => handleUserClick(user)}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${
                     isActive
-                      ? 'bg-indigo-500 shadow-sm'
+                      ? 'bg-white shadow-sm'
                       : 'hover:bg-indigo-100'
                   }`}
                 >
@@ -237,8 +237,8 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold uppercase"
                       style={{
-                        background: isActive ? 'rgba(255,255,255,0.2)' : bgColor,
-                        color: isActive ? 'white' : textColor
+                        background: isActive ? bgColor : bgColor,
+                        color: isActive ? textColor : textColor
                       }}
                     >
                       {user.name?.charAt(0) || '?'}
@@ -248,16 +248,16 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-1">
-                      <span className={`text-[13px] font-semibold truncate ${isActive ? 'text-white' : 'text-indigo-900'}`}>
+                      <span className={`text-[13px] font-semibold truncate ${isActive ? 'text-indigo-900' : 'text-indigo-900'}`}>
                         {user.name}
                       </span>
                       {user.sortTimestamp > 0 && (
-                        <span className={`text-[10px] whitespace-nowrap shrink-0 ${isActive ? 'text-indigo-200' : 'text-indigo-300'}`}>
+                        <span className={`text-[10px] whitespace-nowrap shrink-0 ${isActive ? 'text-indigo-300' : 'text-indigo-300'}`}>
                           {formatTime(user.sortTimestamp)}
                         </span>
                       )}
                     </div>
-                    <p className={`text-[11px] truncate mt-0.5 ${isActive ? 'text-indigo-200' : 'text-indigo-400'}`}>
+                    <p className={`text-[11px] truncate mt-0.5 ${isActive ? 'text-indigo-400' : 'text-indigo-400'}`}>
                       {user.lastMessage || 'Start a conversation'}
                     </p>
                   </div>

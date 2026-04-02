@@ -14,11 +14,10 @@ export default function MessageBubble({ message, isOwn }) {
         )}
 
         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-          {/* Bubble - Added min-w and removed restrictive padding if empty */}
           <div
             className={`px-4 py-2 rounded-2xl text-sm shadow-sm border break-words min-w-[50px] ${
               isOwn
-                ? 'bg-[#e7e9ff] border-[#d2d5ff] text-[#242424] rounded-tr-none'
+                ? 'bg-indigo-500 border-[#d2d5ff] text-white rounded-tr-none'
                 : 'bg-white border-gray-200 text-[#242424] rounded-tl-none'
             }`}
           >

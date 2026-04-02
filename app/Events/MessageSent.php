@@ -15,16 +15,18 @@ use Illuminate\Support\Facades\Log;
 class MessageSent implements ShouldBroadcastNow
 {
     public $message;
-
-    public function __construct($message)
+    public $client_id;
+    public function __construct($message, $client_id = null)
     {
-    Log::info('Broadcasting message:', [
-    'id' => $message->id,
-    'sender_id' => $message->sender_id,
-    'conversation_id' => $message->conversation_id,
-    'sender_exists' => $message->sender ? true : false
-]);
+        Log::info('Broadcasting message:', [
+            'id' => $message->id,
+            'sender_id' => $message->sender_id,
+            'conversation_id' => $message->conversation_id,
+            'sender_exists' => $message->sender ? true : false,
+            'clientid'      => $client_id
+        ]);
         $this->message = $message->load('sender');
+        $this->client_id = $client_id;
     }
 
     public function broadcastOn(): array
@@ -37,5 +39,13 @@ class MessageSent implements ShouldBroadcastNow
     public function broadcastAs(): string
     {
         return 'message.sent';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'message' => $this->message,
+            'client_id' => $this->client_id,
+        ];
     }
 }

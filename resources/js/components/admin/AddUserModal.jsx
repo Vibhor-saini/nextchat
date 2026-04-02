@@ -96,17 +96,10 @@ export default function AddUserModal({ onClose }) {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-[#5b5fc7] transition-colors"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
+            <input type="hidden" name="role" value="user"/>
           </div>
+          
+
 
         </div>
 

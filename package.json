@@ -20,6 +20,7 @@
         "@tailwindcss/typography": "^0.5.19",
         "@vitejs/plugin-react": "^5.2.0",
         "laravel-echo": "^2.3.1",
-        "pusher-js": "^8.4.3"
+        "pusher-js": "^8.4.3",
+        "uuid": "^13.0.0"
     }
 }

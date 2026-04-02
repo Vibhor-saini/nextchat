@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
+use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -87,7 +88,8 @@ class ChatController extends Controller
     {
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
-            'message' => 'required|string'
+            'message' => 'required|string',
+            'client_id' => 'required|string',
         ]);
 
         $authUser = Auth::user();
@@ -100,17 +102,18 @@ class ChatController extends Controller
             })->first();
 
         if (!$conversation) {
-            $conversation = \App\Models\Conversation::create(['type' => 'private']);
+            $conversation = Conversation::create(['type' => 'private']);
             $conversation->users()->attach([$authUser->id, $receiverId]);
         }
 
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $authUser->id,
-            'message' => $request->message
+            'message' => $request->message,
+            'client_id' => $request->client_id,
         ]);
 
-        event(new MessageSent($message));
+        event(new MessageSent($message, $request->client_id));
 
         return back(); 
     }
@@ -138,7 +141,7 @@ class ChatController extends Controller
 
         // agar exist nahi hai → create karo
         if (!$conversation) {
-            $conversation = \App\Models\Conversation::create([
+            $conversation = Conversation::create([
                 'type' => 'private'
             ]);
 

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Conversation;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -20,7 +21,7 @@ class UserController extends Controller
 
         // Create user
         $user = User::create([
-            'name' => $request->name,
+            'name' => Str::title($request->name),
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'user',

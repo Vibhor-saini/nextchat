@@ -10,7 +10,12 @@ class Message extends Model
     protected $fillable = [
         'conversation_id',
         'sender_id',
-        'message'
+        'message',
+        'seen_at',
+    ];
+
+    protected $casts = [
+        'seen_at' => 'datetime',
     ];
 
     public function sender()

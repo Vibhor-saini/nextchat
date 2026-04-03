@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMemo } from 'react';
 import { router } from '@inertiajs/react';
 
-export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAdmin = false, onAddUser, onUserSelect }) {
+export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAdmin = false, onAddUser, onUserSelect, currentUserId }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("recent");
   const [activeNav, setActiveNav] = useState("chat");
@@ -19,7 +19,7 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
     );
 
     const recentUsers = filtered.filter(u => u.lastMessage);
-    return activeTab === 'recent' ? (recentUsers.length > 0 ? recentUsers : filtered) : filtered;
+    return activeTab === 'recent' ? recentUsers : filtered;
   }, [users, searchQuery, activeTab]);
 
   const handleUserClick = (user) => {
@@ -46,20 +46,7 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
   ];
   const getAvatarColors = (name) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
 
-  const navItems = [
-    // {
-    //   id: 'chat', title: 'Chat',
-    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    // },
-    // {
-    //   id: 'search', title: 'Search',
-    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-    // },
-    // {
-    //   id: 'activity', title: 'Activity',
-    //   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    // },
-  ];
+  const navItems = [];
 
   const IconRail = ({ onClose }) => (
     <div className="flex flex-col items-center w-14 bg-indigo-700 h-full py-3 shrink-0">
@@ -130,7 +117,6 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
     </div>
   );
 
-  // Inlined user list panel — NOT a nested component definition, to prevent remounting on state changes
   const userListPanel = (
     <div
       className="w-full md:w-72 bg-indigo-50 h-full flex flex-col border-r border-indigo-100 shrink-0"
@@ -219,6 +205,16 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
             {displayUsers.map(user => {
               const isActive = selectedUserId === user.id;
               const [bgColor, textColor] = getAvatarColors(user.name);
+
+              // "You: " prefix when the current user sent the last message
+              const isMine = currentUserId && user.lastMessageSenderId === currentUserId;
+              const lastMessagePreview = user.lastMessage
+                ? (isMine ? `You: ${user.lastMessage}` : user.lastMessage)
+                : 'Start a conversation';
+
+              // Unread: conversation not currently open and has unread messages
+              const hasUnread = !isActive && user.unreadCount > 0;
+
               return (
                 <div
                   key={user.id}
@@ -230,36 +226,45 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
                   }`}
                 >
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-white rounded-full" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-indigo-500 rounded-full" />
                   )}
 
                   <div className="relative shrink-0">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold uppercase"
-                      style={{
-                        background: isActive ? bgColor : bgColor,
-                        color: isActive ? textColor : textColor
-                      }}
+                      style={{ background: bgColor, color: textColor }}
                     >
                       {user.name?.charAt(0) || '?'}
                     </div>
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 ${isActive ? 'border-indigo-500' : 'border-indigo-50'}`} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 ${isActive ? 'border-white' : 'border-indigo-50'}`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-1">
-                      <span className={`text-[13px] font-semibold truncate ${isActive ? 'text-indigo-900' : 'text-indigo-900'}`}>
+                      {/* Bold name when unread */}
+                      <span className={`text-[13px] truncate ${hasUnread ? 'font-bold text-indigo-900' : 'font-semibold text-indigo-900'}`}>
                         {user.name}
                       </span>
+                      {/* Timestamp: accent color when unread */}
                       {user.sortTimestamp > 0 && (
-                        <span className={`text-[10px] whitespace-nowrap shrink-0 ${isActive ? 'text-indigo-300' : 'text-indigo-300'}`}>
+                        <span className={`text-[10px] whitespace-nowrap shrink-0 font-medium ${hasUnread ? 'text-indigo-500' : 'text-indigo-300'}`}>
                           {formatTime(user.sortTimestamp)}
                         </span>
                       )}
                     </div>
-                    <p className={`text-[11px] truncate mt-0.5 ${isActive ? 'text-indigo-400' : 'text-indigo-400'}`}>
-                      {user.lastMessage || 'Start a conversation'}
-                    </p>
+
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      {/* Preview: darker + medium weight when unread */}
+                      <p className={`text-[11px] truncate ${hasUnread ? 'text-indigo-700 font-medium' : 'text-indigo-400'}`}>
+                        {lastMessagePreview}
+                      </p>
+                      {/* Unread badge */}
+                      {hasUnread && (
+                        <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                          {user.unreadCount > 99 ? '99+' : user.unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -310,6 +315,6 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
         <IconRail />
         {userListPanel}
       </div>
-    </> 
+    </>
   );
 }

@@ -3,15 +3,43 @@ import ChatHeader from '@/components/chat/ChatHeader';
 import ChatInput from '@/components/chat/ChatInput';
 import MessageBubble from '@/components/chat/MessageBubble';
 
-export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack }) {
+function getDateLabel(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+
+  const toMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((toMidnight(now) - toMidnight(date)) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+
+  // e.g. "Monday, 31 March" for within the last week, or "31 March 2025" for older
+  if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function DateSeparator({ label }) {
+  return (
+    <div className="flex items-center gap-3 my-4 px-1">
+      <div className="flex-1 h-px bg-gray-200" />
+      <span className="text-[11px] font-semibold text-gray-400 whitespace-nowrap select-none">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-gray-200" />
+    </div>
+  );
+}
+
+export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false }) {
   const bottomRef = useRef(null);
 
-  // Auto-scroll to latest message
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
-  // Empty state — no user selected
   if (!selectedUser) {
     return (
       <div className="flex flex-col flex-1 h-screen bg-[#fafafa]">
@@ -29,10 +57,58 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
     );
   }
 
+  const renderMessages = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col gap-3 py-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+              <div className={`h-9 rounded-2xl bg-gray-200 animate-pulse ${i % 2 === 0 ? 'w-48' : 'w-36'}`} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (messages.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center px-6">
+          <div className="w-12 h-12 bg-[#edebe9] rounded-full flex items-center justify-center mb-3">
+            <span className="text-lg font-bold text-[#5b5fc7] uppercase">
+              {selectedUser.name?.charAt(0)}
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-[#242424]">{selectedUser.name}</p>
+          <p className="text-xs text-gray-400 mt-1">No messages yet. Say hello!</p>
+        </div>
+      );
+    }
+
+    const items = [];
+    let lastDateLabel = null;
+
+    messages.forEach((msg) => {
+      const label = getDateLabel(msg.created_at);
+
+      if (label !== lastDateLabel) {
+        items.push(<DateSeparator key={`sep-${msg.id}`} label={label} />);
+        lastDateLabel = label;
+      }
+
+      items.push(
+        <MessageBubble
+          key={msg.id}
+          message={msg}
+          isOwn={Number(msg.sender_id) === Number(currentUserId)}
+        />
+      );
+    });
+
+    return items;
+  };
+
   return (
     <div className="flex flex-col flex-1 h-screen bg-[#fafafa] min-w-0">
-
-      {/* Header with optional back button on mobile */}
       <div className="relative shrink-0">
         {onBack && (
           <button
@@ -47,31 +123,11 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
         <ChatHeader selectedUser={selectedUser} isAdmin={isAdmin} />
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 scrollbar-thin scrollbar-thumb-gray-200">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <div className="w-12 h-12 bg-[#edebe9] rounded-full flex items-center justify-center mb-3">
-              <span className="text-lg font-bold text-[#5b5fc7] uppercase">
-                {selectedUser.name?.charAt(0)}
-              </span>
-            </div>
-            <p className="text-sm font-semibold text-[#242424]">{selectedUser.name}</p>
-            <p className="text-xs text-gray-400 mt-1">No messages yet. Say hello!</p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              isOwn={Number(msg.sender_id) === Number(currentUserId)}
-            />
-          ))
-        )}
+        {renderMessages()}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="px-4 py-3 shrink-0 bg-white border-t border-gray-100">
         <ChatInput onSend={onSend} />
       </div>

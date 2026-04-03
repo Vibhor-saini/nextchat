@@ -32,7 +32,6 @@ export default function Chat() {
           onBack={() => setShowChat(false)}
         />
       </div>
-
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Sidebar from "@/components/chat/Sidebar";
 import AddUserModal from "@/components/admin/AddUserModal";
 
 export default function AdminChatIndex() {
-  const { users, authUser, selectedUser, filteredMessages, handleSelectUser, handleSend } = useChat('/admin/chat');
+  const { users, authUser, selectedUser, filteredMessages, handleSelectUser, handleSend, isLoading  } = useChat('/admin/chat');
   const [showAddUser, setShowAddUser] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
@@ -25,6 +25,7 @@ export default function AdminChatIndex() {
           isAdmin={true}
           onAddUser={() => setShowAddUser(true)}
           onUserSelect={() => setShowChat(true)}
+          currentUserId={authUser.id}
         />
       </div>
 
@@ -36,6 +37,7 @@ export default function AdminChatIndex() {
           currentUserId={authUser.id}
           isAdmin={true}
           onBack={() => setShowChat(false)}
+          isLoading={isLoading}
         />
       </div>
 

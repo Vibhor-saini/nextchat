@@ -20,7 +20,7 @@ class ChatController extends Controller
         $conversations = $user->conversations()
             ->with([
                 'users' => fn($q) => $q->where('users.id', '!=', $user->id)->select('users.id', 'name'),
-                'latestMessage'
+                'latestMessage:messages.id,messages.conversation_id,sender_id,message,created_at'  
             ])
 
             ->orderBy('updated_at', 'desc') 

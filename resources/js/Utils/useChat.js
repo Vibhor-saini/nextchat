@@ -12,19 +12,87 @@ export default function useChat(routePath = "/chat") {
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [messagesMap, setMessagesMap] = useState(new Map());
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize messages
+  // Sidebar last message + timestamp + sender maps
+  const [lastMessagesMap, setLastMessagesMap] = useState(() => {
+    const map = new Map();
+    conversations.forEach((conv) => {
+      if (conv.latest_message) {
+        map.set(conv.id, conv.latest_message.message);
+      }
+    });
+    return map;
+  });
+
+  const [lastTimestampMap, setLastTimestampMap] = useState(() => {
+    const map = new Map();
+    conversations.forEach((conv) => {
+      if (conv.latest_message) {
+        map.set(conv.id, new Date(conv.latest_message.created_at).getTime());
+      }
+    });
+    return map;
+  });
+
+  // Track who sent the last message per conversation
+  const [lastSenderMap, setLastSenderMap] = useState(() => {
+    const map = new Map();
+    conversations.forEach((conv) => {
+      if (conv.latest_message) {
+        map.set(conv.id, conv.latest_message.sender_id);
+      }
+    });
+    return map;
+  });
+
+  // Initialize messages from chatHistory
   useEffect(() => {
     const map = new Map();
-
     chatHistory.forEach((msg) => {
       map.set(msg.id, { ...msg, status: "sent" });
     });
-
     setMessagesMap(map);
   }, [chatHistory]);
 
-  //  Realtime listener
+  // Listen to ALL conversations for sidebar live updates
+  useEffect(() => {
+    if (!conversations.length) return;
+
+    const channels = conversations.map((conv) => {
+      const channelName = `conversation.${conv.id}`;
+      const channel = window.Echo.private(channelName);
+
+      channel.listen(".message.sent", (e) => {
+        setLastMessagesMap((prev) => {
+          const map = new Map(prev);
+          map.set(e.message.conversation_id, e.message.message);
+          return map;
+        });
+
+        setLastTimestampMap((prev) => {
+          const map = new Map(prev);
+          map.set(e.message.conversation_id, new Date(e.message.created_at).getTime());
+          return map;
+        });
+
+        // Update sender tracking on live message
+        setLastSenderMap((prev) => {
+          const map = new Map(prev);
+          map.set(e.message.conversation_id, e.message.sender_id);
+          return map;
+        });
+      });
+
+      return channelName;
+    });
+
+    return () => {
+      channels.forEach((name) => window.Echo.leave(`private-${name}`));
+    };
+  }, [conversations.length]);
+
+  // Listen to selected conversation for chat messages
   useEffect(() => {
     if (!selectedUser?.conversation_id) return;
 
@@ -36,20 +104,14 @@ export default function useChat(routePath = "/chat") {
         const map = new Map(prev);
 
         if (e.client_id && map.has(e.client_id)) {
-          // get temp message
           const temp = map.get(e.client_id);
-
-          // remove temp
           map.delete(e.client_id);
-
-          //  insert real message with REAL ID
           map.set(e.message.id, {
             ...e.message,
             client_id: e.client_id,
             status: "sent",
           });
         } else {
-          // message from other user
           map.set(e.message.id, {
             ...e.message,
             status: "sent",
@@ -72,29 +134,37 @@ export default function useChat(routePath = "/chat") {
     );
   }, [messagesMap]);
 
-  //  Users list
-  const users = [
-    ...conversations.map((conv) => {
-      const user = conv.users.find((u) => u.id !== authUser.id);
-      return {
-        ...user,
-        conversation_id: conv.id,
-        lastMessage: conv.latest_message?.message,
-        timestamp: conv.latest_message
-          ? new Date(conv.latest_message.created_at).getTime()
-          : 0,
-      };
-    }),
-    ...otherUsers.map((u) => ({
-      ...u,
-      timestamp: 0,
-      conversation_id: null,
-    })),
-  ].sort((a, b) => b.timestamp - a.timestamp);
+  // Users list — reacts to lastMessagesMap + lastTimestampMap + lastSenderMap instantly
+  const users = useMemo(() => {
+    return [
+      ...conversations.map((conv) => {
+        const user = conv.users.find((u) => u.id !== authUser.id);
+        return {
+          ...user,
+          conversation_id: conv.id,
+          lastMessage: lastMessagesMap.get(conv.id) ?? conv.latest_message?.message,
+          lastMessageSenderId: lastSenderMap.get(conv.id) ?? conv.latest_message?.sender_id ?? null,
+          timestamp: lastTimestampMap.get(conv.id) ?? (
+            conv.latest_message
+              ? new Date(conv.latest_message.created_at).getTime()
+              : 0
+          ),
+        };
+      }),
+      ...otherUsers.map((u) => ({
+        ...u,
+        timestamp: 0,
+        conversation_id: null,
+        lastMessageSenderId: null,
+      })),
+    ].sort((a, b) => b.timestamp - a.timestamp);
+  }, [conversations, otherUsers, lastMessagesMap, lastTimestampMap, lastSenderMap]);
 
   // Select user
   const handleSelectUser = (user) => {
     setSelectedUser(user);
+    setIsLoading(true);
+
     router.get(
       routePath,
       { selected: user.id },
@@ -102,11 +172,12 @@ export default function useChat(routePath = "/chat") {
         preserveState: true,
         replace: true,
         only: ["chatHistory", "conversations", "otherUsers"],
+        onFinish: () => setIsLoading(false),
       }
     );
   };
 
-  // Filter messages
+  // Filter messages for selected conversation
   const filteredMessages = useMemo(() => {
     return allMessages.filter((msg) => {
       if (!selectedUser) return false;
@@ -114,8 +185,7 @@ export default function useChat(routePath = "/chat") {
       if (
         msg.conversation_id &&
         selectedUser.conversation_id &&
-        Number(msg.conversation_id) ===
-          Number(selectedUser.conversation_id)
+        Number(msg.conversation_id) === Number(selectedUser.conversation_id)
       ) {
         return true;
       }
@@ -131,7 +201,7 @@ export default function useChat(routePath = "/chat") {
     });
   }, [allMessages, selectedUser]);
 
-  // Send message (Optimistic + UUID)
+  // Send message with optimistic sidebar update
   const handleSend = (text) => {
     if (!selectedUser || !text.trim()) return;
 
@@ -148,12 +218,32 @@ export default function useChat(routePath = "/chat") {
       status: "sending",
     };
 
-    // O(1) insert
+    // Optimistic message in chat
     setMessagesMap((prev) => {
       const map = new Map(prev);
       map.set(clientId, newMessage);
       return map;
     });
+
+    // Optimistic sidebar update — instant, no waiting for Echo
+    if (selectedUser.conversation_id) {
+      setLastMessagesMap((prev) => {
+        const map = new Map(prev);
+        map.set(selectedUser.conversation_id, text);
+        return map;
+      });
+      setLastTimestampMap((prev) => {
+        const map = new Map(prev);
+        map.set(selectedUser.conversation_id, Date.now());
+        return map;
+      });
+      // Optimistically mark current user as last sender
+      setLastSenderMap((prev) => {
+        const map = new Map(prev);
+        map.set(selectedUser.conversation_id, authUser.id);
+        return map;
+      });
+    }
 
     router.post(
       "/messages",
@@ -164,15 +254,12 @@ export default function useChat(routePath = "/chat") {
       },
       {
         preserveScroll: true,
+        only: ["conversations"],
         onError: () => {
-          //  mark failed
           setMessagesMap((prev) => {
             const map = new Map(prev);
             if (map.has(clientId)) {
-              map.set(clientId, {
-                ...map.get(clientId),
-                status: "failed",
-              });
+              map.set(clientId, { ...map.get(clientId), status: "failed" });
             }
             return map;
           });
@@ -188,5 +275,6 @@ export default function useChat(routePath = "/chat") {
     filteredMessages,
     handleSelectUser,
     handleSend,
+    isLoading,
   };
 }

@@ -6,63 +6,71 @@ export default function ChatHeader({ selectedUser, isAdmin }) {
     router.post('/logout');
   };
 
+  const avatarColors = [
+    ['#e0e7ff', '#4338ca'], ['#fce7f3', '#be185d'],
+    ['#dcfce7', '#15803d'], ['#fef3c7', '#b45309'],
+    ['#e0f2fe', '#0369a1'], ['#f3e8ff', '#7e22ce'],
+  ];
+  const getAvatarColors = (name) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
+
   if (!selectedUser) {
     return (
-      <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-white shrink-0">
-        <h3 className="font-semibold text-[#242424]">Messages</h3>
-        <LogoutButton onLogout={handleLogout} />
+      <div className="h-16 border-b flex items-center justify-between px-6 bg-white shrink-0" style={{ borderColor: '#f0f0f8' }}>
+        <h3 className="font-bold text-[15px]" style={{ color: '#1a1a2e' }}>Messages</h3>
       </div>
     );
   }
 
+  const [bgColor, textColor] = getAvatarColors(selectedUser.name);
+
   return (
-    <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-white shrink-0 z-10">
+    <div className="h-16 border-b flex items-center justify-between px-6 bg-white shrink-0 z-10" style={{ borderColor: '#f0f0f8' }}>
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="w-8 h-8 bg-[#edebe9] rounded-full flex items-center justify-center text-xs font-bold text-[#5b5fc7] border border-gray-100 uppercase">
-            {selectedUser.name.charAt(0)}
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold uppercase"
+            style={{ background: bgColor, color: textColor }}
+          >
+            {selectedUser.name?.slice(0, 2) || '?'}
           </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
         </div>
 
         <div className="flex flex-col">
-          <h3 className="text-sm font-bold text-[#242424] leading-tight">
+          <h3 className="text-[14px] font-bold leading-tight" style={{ color: '#1a1a2e' }}>
             {selectedUser.name}
           </h3>
-          <span className="text-[11px] text-gray-500 font-medium">Available</span>
+          <span className="text-[11px] font-medium" style={{ color: '#a0a0c0' }}>Available</span>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        {/* {isAdmin && (
-          <button className="flex items-center gap-2 text-xs font-semibold text-[#5b5fc7] hover:bg-[#edebe9] px-3 py-1.5 rounded-md transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <line x1="19" x2="19" y1="8" y2="14"/>
-              <line x1="16" x2="22" y1="11" y2="11"/>
-            </svg>
-            <span>Add people</span>
-          </button>
-        )} */}
+        {/* Search icon */}
+        <button
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+          style={{ color: '#b0b0c8' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#6c63ff'; e.currentTarget.style.background = '#f0efff'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#b0b0c8'; e.currentTarget.style.background = ''; }}
+          title="Search in conversation"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+        </button>
+
+        {/* More options */}
+        <button
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+          style={{ color: '#b0b0c8' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#6c63ff'; e.currentTarget.style.background = '#f0efff'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#b0b0c8'; e.currentTarget.style.background = ''; }}
+          title="More options"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
       </div>
     </div>
-  );
-}
-
-function LogoutButton({ onLogout }) {
-  return (
-    <button
-      onClick={onLogout}
-      title="Logout"
-      className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors"
-    >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-        <polyline points="16 17 21 12 16 7"/>
-        <line x1="21" x2="9" y1="12" y2="12"/>
-      </svg>
-      <span>Logout</span>
-    </button>
   );
 }

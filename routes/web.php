@@ -26,6 +26,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/messages', [ChatController::class, 'send']);
     Route::get('/start-chat/{userId}', [ChatController::class, 'startChat']);
     Route::get('/users', [ChatController::class, 'allUsers']);
+
+    // New seen route
+    Route::post('/chat/seen', [ChatController::class, 'markSeen'])->name('chat.seen');
 });
 
 // Route::get('/dashboard', function () {

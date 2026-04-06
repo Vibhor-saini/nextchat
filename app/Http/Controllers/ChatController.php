@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Message;
 use Inertia\Inertia;
-use App\Events\MessageSeen;
-use Carbon\Carbon;
 
 class ChatController extends Controller
 {
@@ -22,27 +20,26 @@ class ChatController extends Controller
         $conversations = $user->conversations()
             ->with([
                 'users' => fn($q) => $q->where('users.id', '!=', $user->id)->select('users.id', 'name'),
-                'latestMessage:messages.id,messages.conversation_id,sender_id,message,created_at,seen_at'
+                'latestMessage:messages.id,messages.conversation_id,sender_id,message,created_at'  
             ])
-            ->orderBy('updated_at', 'desc')
+
+            ->orderBy('updated_at', 'desc') 
             ->get();
 
         $otherUsers = User::where('id', '!=', $user->id)
-            ->whereNotIn('id', function ($query) use ($user) {
-                $query->select('conversation_user.user_id')
-                    ->from('conversation_user')
-                    ->whereIn('conversation_user.conversation_id', function ($q) use ($user) {
-                        $q->select('conversation_user.conversation_id')
-                            ->from('conversation_user')
-                            ->where('conversation_user.user_id', $user->id);
-                    });
-            })
-            ->select('id', 'name')
-            ->get();
+        ->whereNotIn('id', function($query) use ($user) {
+            $query->select('conversation_user.user_id')
+                ->from('conversation_user')
+                ->whereIn('conversation_user.conversation_id', function($q) use ($user) {
+                    $q->select('conversation_user.conversation_id')
+                        ->from('conversation_user')
+                        ->where('conversation_user.user_id', $user->id);
+                });
+        })
+        ->select('id', 'name')
+        ->get();
 
         $chatHistory = [];
-        $conversation = null;
-
         if ($selectedId) {
             $conversation = $user->conversations()
                 ->whereHas('users', fn($q) => $q->where('user_id', $selectedId))
@@ -53,9 +50,6 @@ class ChatController extends Controller
                     ->with('sender:id,name')
                     ->orderBy('created_at', 'asc')
                     ->get();
-
-                // Mark all unseen messages as seen (jo current user ne receive kiye hain)
-                $this->markConversationSeen($conversation->id, $user->id);
             }
         }
 
@@ -69,43 +63,6 @@ class ChatController extends Controller
         ]);
     }
 
-
-
-
-
-    // Dedicated API route ke liye bhi (AJAX call se)
-    public function markSeen(Request $request)
-    {
-        $request->validate([
-            'conversation_id' => 'required|exists:conversations,id',
-        ]);
-
-        $user = Auth::user();
-
-        // Verify user is part of this conversation
-        $conversation = $user->conversations()->findOrFail($request->conversation_id);
-
-        $this->markConversationSeen($conversation->id, $user->id);
-
-        return response()->json(['status' => 'ok']);
-    }
-
-
-    // Reusable private helper
-    private function markConversationSeen(int $conversationId, int $userId): void
-    {
-        $now = Carbon::now();
-
-        $updated = Message::where('conversation_id', $conversationId)
-            ->where('sender_id', '!=', $userId)   // apne messages ko seen mat karo
-            ->whereNull('seen_at')                  // sirf unseen messages
-            ->update(['seen_at' => $now]);
-
-        if ($updated > 0) {
-            // Broadcast to conversation channel so sender sees double-tick
-            event(new MessageSeen($conversationId, $userId, $now->toISOString()));
-        }
-    }
 
 
     /**
@@ -142,6 +99,8 @@ class ChatController extends Controller
 
         event(new MessageSent($message, $request->client_id));
 
-        return back();
+        return back(); 
     }
+
+
 }

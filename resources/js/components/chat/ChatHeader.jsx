@@ -46,7 +46,7 @@ export default function ChatHeader({ selectedUser, isAdmin }) {
 
       <div className="flex items-center gap-2">
         {/* Search icon */}
-        <button
+        {/* <button
           className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
           style={{ color: '#b0b0c8' }}
           onMouseEnter={e => { e.currentTarget.style.color = '#6c63ff'; e.currentTarget.style.background = '#f0efff'; }}
@@ -56,7 +56,7 @@ export default function ChatHeader({ selectedUser, isAdmin }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
           </svg>
-        </button>
+        </button> */}
 
         {/* More options */}
         <button

@@ -33,7 +33,7 @@ function DateSeparator({ label }) {
   );
 }
 
-export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false }) {
+export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false, typing  }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
         lastDateLabel = label;
       }
 
-      items.push(
+      items.push( 
         <MessageBubble
           key={msg.id}
           message={msg}
@@ -127,6 +127,12 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
         {renderMessages()}
         <div ref={bottomRef} />
       </div>
+
+      {typing && (
+        <div className="text-xs text-gray-400 px-3 py-1">
+          Typing...
+        </div>
+      )}
 
       <div className="px-4 py-3 shrink-0 bg-white border-t border-gray-100">
         <ChatInput onSend={onSend} />

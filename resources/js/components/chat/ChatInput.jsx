@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-export default function ChatInput({ onSend }) {
+export default function ChatInput({ onSend, selectedUser, sendTyping }) {
   const [text, setText] = useState("");
   const inputRef = useRef(null);
 
@@ -48,7 +48,13 @@ export default function ChatInput({ onSend }) {
           className="flex-1 px-2 py-2 text-sm bg-transparent outline-none resize-none placeholder:text-gray-400 min-h-[40px] max-h-32"
           placeholder="Type a message"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+
+            if (selectedUser?.conversation_id) {
+              sendTyping(selectedUser.conversation_id);
+            }
+          }}
           onKeyDown={handleKeyDown}
         />
         

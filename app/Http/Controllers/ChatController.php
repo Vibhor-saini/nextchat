@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageDelivered;
+use App\Events\MessageSeen;
 use App\Events\MessageSent;
+use App\Events\TypingEvent;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -64,24 +67,6 @@ class ChatController extends Controller
     }
 
     /**
-     *  Open Chat (Messages)
-     */
-    public function show($id)
-    {
-        $user = Auth::user();
-
-        $conversation = $user->conversations()
-            ->with('messages.sender')
-            ->findOrFail($id);
-
-        if ($user->role === 'admin') {
-            return view('admin.chat.show', compact('conversation'));
-        }
-
-        return view('chat.show', compact('conversation'));
-    }
-
-    /**
      *  Send Message
      */
     public function send(Request $request)
@@ -118,36 +103,45 @@ class ChatController extends Controller
         return back(); 
     }
 
-    // All users
-    public function allUsers()
+    public function markDelivered(Request $request)
     {
-        $users = User::where('id', '!=', auth()->id())->get();
+        $ids = $request->message_ids;
 
-        return view('chat.users', compact('users'));
-    }
+        $messages = Message::whereIn('id', $ids)
+            ->whereNull('delivered_at')
+            ->get();
 
-    //start chat---------
-    public function startChat($userId)
-    {
-        $authUser = Auth::user();
-
-        // check existing conversation
-        $conversation = $authUser->conversations()
-            ->whereHas('users', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
-            })
-            ->where('type', 'private')
-            ->first();
-
-        // agar exist nahi hai → create karo
-        if (!$conversation) {
-            $conversation = Conversation::create([
-                'type' => 'private'
-            ]);
-
-            $conversation->users()->attach([$authUser->id, $userId]);
+        foreach ($messages as $msg) {
+            $msg->update(['delivered_at' => now()]);
+            broadcast(new MessageDelivered($msg->id, $msg->conversation_id))->toOthers();
         }
 
-        return redirect('/chat/' . $conversation->id);
+        return response()->json(['ok']);
+    }
+
+    public function markSeen(Request $request)
+    {
+        $conversationId = $request->conversation_id;
+
+        Message::where('conversation_id', $conversationId)
+            ->where('receiver_id', auth()->id())
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
+        broadcast(new MessageSeen($conversationId))->toOthers();
+
+        return response()->json(['ok']);
+    }
+
+    public function typing(Request $request)
+    {
+        broadcast(new TypingEvent(
+            $request->conversation_id,
+            auth()->id()
+        ))->toOthers();
+
+        return response()->json(['ok']);
     }
 }
+
+

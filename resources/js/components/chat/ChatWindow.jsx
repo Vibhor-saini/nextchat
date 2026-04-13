@@ -33,7 +33,7 @@ function DateSeparator({ label }) {
   );
 }
 
-export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false, typing  }) {
+export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false, typing, sendTyping  }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
     );
   }
 
-  const renderMessages = () => {
+const renderMessages = () => {
     if (isLoading) {
       return (
         <div className="flex flex-col gap-3 py-2">
@@ -87,7 +87,8 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
     const items = [];
     let lastDateLabel = null;
 
-    messages.forEach((msg) => {
+    // Use only ONE loop and pass index
+    messages.forEach((msg, index) => {
       const label = getDateLabel(msg.created_at);
 
       if (label !== lastDateLabel) {
@@ -95,11 +96,19 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
         lastDateLabel = label;
       }
 
-      items.push( 
+      // Find the last message sent by the current user (not just the last message overall)
+      const isLastOwnMessage =
+        Number(msg.sender_id) === Number(currentUserId) &&
+        messages
+          .slice(index + 1)
+          .every((m) => Number(m.sender_id) !== Number(currentUserId));
+
+      items.push(
         <MessageBubble
           key={msg.id}
           message={msg}
           isOwn={Number(msg.sender_id) === Number(currentUserId)}
+          isLast={isLastOwnMessage}
         />
       );
     });
@@ -128,14 +137,14 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
         <div ref={bottomRef} />
       </div>
 
-      {typing && (
+      {typing?.[selectedUser.id] && (
         <div className="text-xs text-gray-400 px-3 py-1">
           Typing...
         </div>
       )}
 
       <div className="px-4 py-3 shrink-0 bg-white border-t border-gray-100">
-        <ChatInput onSend={onSend} />
+        <ChatInput onSend={onSend} selectedUser={selectedUser} sendTyping={sendTyping} />
       </div>
     </div>
   );

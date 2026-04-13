@@ -5,9 +5,9 @@ import Sidebar from "@/components/chat/Sidebar";
 import AddUserModal from "@/components/admin/AddUserModal";
 
 export default function AdminChatIndex() {
-  const { users, authUser, selectedUser, filteredMessages, handleSelectUser, handleSend, isLoading  } = useChat('/admin/chat');
   const [showAddUser, setShowAddUser] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const { users, authUser, selectedUser, filteredMessages, handleSelectUser, handleSend, isLoading, sendTyping, typing  } = useChat('/admin/chat', showChat);
 
   const handleUserClick = (user) => {
     handleSelectUser(user);
@@ -26,6 +26,8 @@ export default function AdminChatIndex() {
           onAddUser={() => setShowAddUser(true)}
           onUserSelect={() => setShowChat(true)}
           currentUserId={authUser.id}
+          sendTyping={sendTyping}
+          typing={typing}
         />
       </div>
 
@@ -36,8 +38,10 @@ export default function AdminChatIndex() {
           onSend={handleSend}
           currentUserId={authUser.id}
           isAdmin={true}
-          onBack={() => setShowChat(false)}
+          onBack={() => {setShowChat(false); handleSelectUser(null);}}
           isLoading={isLoading}
+          sendTyping={sendTyping}
+          typing={typing}
         />
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMemo } from 'react';
 import { router } from '@inertiajs/react';
 
-export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAdmin = false, onAddUser, onUserSelect, currentUserId }) {
+export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAdmin = false, onAddUser, onUserSelect, currentUserId, typing }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("recent");
   const [activeNav, setActiveNav] = useState("chat");
@@ -272,24 +272,24 @@ export default function Sidebar({ users = [], onSelectUser, selectedUserId, isAd
                     </div>
 
                     <div className="flex items-center justify-between gap-1 mt-0.5">
-                      <p
-                        className="text-[11px] truncate"
-                        style={{
-                          color: hasUnread ? '#4a4a7a' : '#a0a0c0',
-                          fontWeight: hasUnread ? 500 : 400,
-                        }}
+                    <p
+                      className="text-[11px] truncate"
+                      style={{
+                        color: hasUnread ? '#4a4a7a' : '#a0a0c0',
+                        fontWeight: hasUnread ? 500 : 400,
+                      }}
+                    >
+                      {typing?.[user.id] ? 'Typing…' : lastMessagePreview}
+                    </p>
+                    {hasUnread && !user.isTyping && (
+                      <span
+                        className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                        style={{ background: '#6c63ff' }}
                       >
-                        {lastMessagePreview}
-                      </p>
-                      {hasUnread && (
-                        <span
-                          className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center leading-none"
-                          style={{ background: '#6c63ff' }}
-                        >
-                          {user.unreadCount > 99 ? '99+' : user.unreadCount}
-                        </span>
-                      )}
-                    </div>
+                        {user.unreadCount > 99 ? '99+' : user.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   </div>
                 </div>
               );

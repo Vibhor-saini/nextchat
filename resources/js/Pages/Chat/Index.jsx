@@ -18,6 +18,8 @@ export default function Chat() {
     handleSelectUser,
     handleSend,
     isLoading,
+    sendTyping,
+    typing,
   } = useChat("/chat");
 
   const [showChat, setShowChat] = useState(false);
@@ -27,7 +29,7 @@ export default function Chat() {
     setShowChat(true);
   }, [handleSelectUser]);
 
-  const handleBack = useCallback(() => setShowChat(false), []);
+  const handleBack = useCallback(() => {setShowChat(false); handleSelectUser(null); }, []);
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
@@ -38,6 +40,8 @@ export default function Chat() {
           onSelectUser={handleUserClick}
           selectedUserId={selectedUser?.id}
           currentUserId={authUser.id}
+          sendTyping={sendTyping}
+          typing={typing}
         />
       </div>
 
@@ -50,6 +54,8 @@ export default function Chat() {
           currentUserId={authUser.id}
           onBack={handleBack}
           isLoading={isLoading}
+          sendTyping={sendTyping}
+          typing={typing}
         />
       </div>
     </div>

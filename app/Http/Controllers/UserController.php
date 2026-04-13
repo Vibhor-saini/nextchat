@@ -12,14 +12,12 @@ class UserController extends Controller
 {
     public function store(Request $request)
     {
-        //  Validation (basic)
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required'
+            'password' => 'required|min:6|confirmed',
         ]);
 
-        // Create user
         $user = User::create([
             'name' => Str::title($request->name),
             'email' => $request->email,
@@ -28,7 +26,6 @@ class UserController extends Controller
             'is_active' => true
         ]);
 
-        //  AUTO CONNECT (admin ↔ user)
         $adminId = Auth::id();
 
         $conversation = Conversation::create([
@@ -37,7 +34,6 @@ class UserController extends Controller
 
         $conversation->users()->attach([$adminId, $user->id]);
 
-        //  Inertia friendly response
-        return back()->with('success', 'User created successfully');
+        return redirect()->back()->with('success', 'User created successfully');
     }
 }

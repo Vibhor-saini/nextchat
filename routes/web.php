@@ -29,13 +29,13 @@ Route::middleware(['auth'])->group(function () {
 
     // New seen route
     Route::post('/chat/seen', [ChatController::class, 'markSeen'])->name('chat.seen');
+    
+    Route::post('/messages/delivered', [ChatController::class, 'markDelivered']);
+    Route::post('/messages/seen', [ChatController::class, 'markSeen']);
+    Route::post('/typing', [ChatController::class, 'typing']);
 });
 
 // Route::get('/dashboard', function () {
 //     return view('dashboard');
 // })->middleware('auth');
 
-
-Route::post('/messages/delivered', [ChatController::class, 'markDelivered']);
-Route::post('/messages/seen', [ChatController::class, 'markSeen']);
-Route::post('/typing', [ChatController::class, 'typing']);

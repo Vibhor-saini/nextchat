@@ -7,12 +7,15 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
-class MessageSeen
+class MessageSeen implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
     /**
      * Create a new event instance.
@@ -21,6 +24,7 @@ class MessageSeen
 
     public function __construct($conversationId)
     {
+        Log::info($conversationId);
         $this->conversationId = $conversationId;
     }
 
@@ -32,5 +36,13 @@ class MessageSeen
     public function broadcastAs()
     {
         return 'message.seen';
+    }
+
+    public function broadcastWith()
+    {
+        return [
+            'conversation_id' => $this->conversationId,
+            'user_id' => Auth::id(),
+        ];
     }
 }

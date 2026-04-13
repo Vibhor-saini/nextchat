@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 export default function AddUserModal({ onClose }) {
+  const page = usePage();
+  const errors = page?.props?.errors ?? {};
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -9,24 +12,23 @@ export default function AddUserModal({ onClose }) {
     password_confirmation: '',
     role: 'user',
   });
-  const [errors, setErrors] = useState({});
+
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setErrors(prev => ({ ...prev, [e.target.name]: null }));
   };
 
   const handleSubmit = () => {
-    setLoading(true);
-    router.post('/admin/users', form, {
-      onError: (errs) => {
-        setErrors(errs);
-        setLoading(false);
-      },
-      onSuccess: () => {
-        setLoading(false);
-        onClose();
+  setLoading(true);
+
+  router.post('/admin/users', form, {
+      onFinish: () => setLoading(false),
+
+      onSuccess: (page) => {
+        if (!page.props.errors || Object.keys(page.props.errors).length === 0) {
+          onClose();
+        }
       },
     });
   };
@@ -54,7 +56,7 @@ export default function AddUserModal({ onClose }) {
               placeholder="John Doe"
               className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-[#5b5fc7] transition-colors"
             />
-            {errors.name && <p className="text-[11px] text-red-500 mt-1">{errors.name}</p>}
+            {errors?.name && <p className="text-[11px] text-red-500 mt-1">{errors.name}</p>}
           </div>
 
           <div>
@@ -67,7 +69,7 @@ export default function AddUserModal({ onClose }) {
               placeholder="john@example.com"
               className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-[#5b5fc7] transition-colors"
             />
-            {errors.email && <p className="text-[11px] text-red-500 mt-1">{errors.email}</p>}
+            {errors?.email && <p className="text-[11px] text-red-500 mt-1">{errors.email}</p>}
           </div>
 
           <div>
@@ -80,7 +82,7 @@ export default function AddUserModal({ onClose }) {
               placeholder="••••••••"
               className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-[#5b5fc7] transition-colors"
             />
-            {errors.password && <p className="text-[11px] text-red-500 mt-1">{errors.password}</p>}
+            {errors?.password && <p className="text-[11px] text-red-500 mt-1">{errors.password}</p>}
           </div>
 
           <div>
@@ -98,8 +100,6 @@ export default function AddUserModal({ onClose }) {
           <div>
             <input type="hidden" name="role" value="user"/>
           </div>
-          
-
 
         </div>
 
@@ -119,7 +119,6 @@ export default function AddUserModal({ onClose }) {
             {loading ? 'Registering...' : 'Register User'}
           </button>
         </div>
-
       </div>
     </div>
   );

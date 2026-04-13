@@ -83,13 +83,13 @@ export default function ChatInput({ onSend, selectedUser, sendTyping }) {
       <div className="flex items-center gap-1 px-2 py-1 border-b border-gray-50">
         
         {/* Format */}
-        <button className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
+        {/* <button className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="4 7 4 4 20 4 20 7"/>
             <line x1="9" x2="15" y1="20" y2="20"/>
             <line x1="12" x2="12" y1="4" y2="20"/>
           </svg>
-        </button>
+        </button> */}
 
         {/* Attach */}
         <button className="p-1.5 hover:bg-gray-100 rounded text-gray-500">

@@ -3,10 +3,7 @@ import useChat from "@/utils/useChat";
 import Sidebar from "@/components/chat/Sidebar";
 import ChatWindow from "@/components/chat/ChatWindow";
 
-// Memoized so Sidebar never re-renders just because showChat toggles
-const MemoSidebar = memo(Sidebar);
-
-// Memoized so ChatWindow never re-renders just because sidebar state changes
+const MemoSidebar   = memo(Sidebar);
 const MemoChatWindow = memo(ChatWindow);
 
 export default function Chat() {
@@ -20,6 +17,7 @@ export default function Chat() {
     isLoading,
     sendTyping,
     typing,
+    historyKey,       // ← new
   } = useChat("/chat");
 
   const [showChat, setShowChat] = useState(false);
@@ -29,11 +27,13 @@ export default function Chat() {
     setShowChat(true);
   }, [handleSelectUser]);
 
-  const handleBack = useCallback(() => {setShowChat(false); handleSelectUser(null); }, []);
+  const handleBack = useCallback(() => {
+    setShowChat(false);
+    handleSelectUser(null);
+  }, [handleSelectUser]);
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Sidebar — hidden on mobile when chat is open */}
       <div className={`${showChat ? "hidden md:flex" : "flex"} w-full md:w-auto`}>
         <MemoSidebar
           users={users}
@@ -45,7 +45,6 @@ export default function Chat() {
         />
       </div>
 
-      {/* Chat window — hidden on mobile when sidebar is shown */}
       <div className={`${showChat ? "flex" : "hidden md:flex"} flex-1`}>
         <MemoChatWindow
           messages={filteredMessages}
@@ -56,6 +55,9 @@ export default function Chat() {
           isLoading={isLoading}
           sendTyping={sendTyping}
           typing={typing}
+          authUser={authUser}       // ← new: full object for userMap
+          users={users}             // ← new: full list for reaction tooltips
+          historyKey={historyKey}   // ← new: drives hard scroll-to-bottom
         />
       </div>
     </div>

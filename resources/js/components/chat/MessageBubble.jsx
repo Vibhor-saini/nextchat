@@ -1,237 +1,214 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useCallback, useRef } from "react";
+import ReactionPicker from "./ReactionPicker";
+import ReactionBar from "./ReactionBar";
 
+// ── Avatar color palette ───────────────────────────────────────────────────────
 const avatarColors = [
-  ['#e0e7ff', '#4338ca'], ['#fce7f3', '#be185d'],
-  ['#dcfce7', '#15803d'], ['#fef3c7', '#b45309'],
-  ['#e0f2fe', '#0369a1'], ['#f3e8ff', '#7e22ce'],
+  ["#e0e7ff", "#4338ca"], ["#fce7f3", "#be185d"],
+  ["#dcfce7", "#15803d"], ["#fef3c7", "#b45309"],
+  ["#e0f2fe", "#0369a1"], ["#f3e8ff", "#7e22ce"],
 ];
 
 function getAvatarColors(name) {
   return avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
 }
 
-// Pre-format time once — not on every render
+// ── Time formatter ─────────────────────────────────────────────────────────────
 function formatTime(isoString) {
-  if (!isoString) return 'Just now';
+  if (!isoString) return "Just now";
   return new Date(isoString).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-// // Status icon — pure, no state
-// function StatusTick({ status }) {
-//   if (status === 'sending') {
-//     return (
-//       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//         <circle cx="12" cy="12" r="10"/>
-//         <polyline points="12 6 12 12 16 14"/>
-//       </svg>
-//     );
-//   }
-//   if (status === 'failed') {
-//     return (
-//       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//         <circle cx="12" cy="12" r="10"/>
-//         <line x1="12" y1="8" x2="12" y2="12"/>
-//         <line x1="12" y1="16" x2="12.01" y2="16"/>
-//       </svg>
-//     );
-//   }
-//   // NEW: Eye icon for Seen status
-//   if (status === 'seen') {
-//     return (
-//       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-//         <circle cx="12" cy="12" r="3"></circle>
-//       </svg>
-//     );
-//   }
-  
-//   return (
-//     // null
-//     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-//       <polyline points="20 6 9 17 4 12"/>
-//     </svg>
-//   );
-// }
-
-// function MessageBubble({ message, isOwn }) {
-//   const content = message.message;
-
-//   // useMemo so time string isn't recalculated unless created_at changes
-//   const timeString = useMemo(() => formatTime(message.created_at), [message.created_at]);
-
-//   const [bgColor, textColor] = useMemo(
-//     () => getAvatarColors(message.sender_name),
-//     [message.sender_name]
-//   );
-
-//   return (
-//     <div className={`flex w-full mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-//       <div className={`flex gap-3 max-w-[75%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-
-//         {/* Avatar for others */}
-//         {!isOwn && (
-//           <div
-//             className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold mt-1 uppercase"
-//             style={{ background: bgColor, color: textColor }}
-//           >
-//             {message.sender_name?.slice(0, 2) || 'U'}
-//           </div>
-//         )}
-
-//         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-//           <div
-//             className={`px-4 py-2 rounded-2xl text-sm break-words min-w-[50px] ${
-//               isOwn
-//                 ? 'rounded-tr-none text-white'
-//                 : 'rounded-tl-none text-[#242424]'
-//             }`}
-//             style={
-//               isOwn
-//                 ? { background: '#6c63ff', border: '1px solid #5a52e0' }
-//                 : { background: '#fff', border: '1px solid #f0f0f8' }
-//             }
-//           >
-//             {content}
-//           </div>
-
-//           <div className="flex items-center gap-1 mt-1 px-1">
-//             <span className="text-[10px]" style={{ color: '#c0c0d8' }}>
-//               {timeString}
-//             </span>
-//             {isOwn && <StatusTick status={message.status} />}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// // Deep equality check — only re-render if message content or status actually changed
-// export default memo(MessageBubble, (prev, next) => {
-//   return (
-//     prev.message.id        === next.message.id &&
-//     prev.message.message   === next.message.message &&
-//     prev.message.status    === next.message.status &&
-//     prev.isOwn             === next.isOwn
-//   );
-// });
-
-// Inside MessageBubble.jsx
-
-// 1. Update StatusTick to handle blue color for seen
-// function StatusTick({ status }) {
-//   if (status === 'sending') {
-//     return (
-//       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-//       </svg>
-//     );
-//   }
-//   if (status === 'failed') {
-//     return (
-//       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-//       </svg>
-//     );
-//   }
-  
-//   // SEEN: Change stroke color to blue (e.g., #3b82f6)
-//   if (status === 'seen') {
-//     return (
-//       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-//         <polyline points="20 6 9 17 4 12"/>
-//       </svg>
-//     );
-//   }
-
-//   // DEFAULT (Delivered/Sent): Grey/Pale tick
-//   return (
-//     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-//       <polyline points="20 6 9 17 4 12"/>
-//     </svg>
-//   );
-// }
+// ── Status tick ────────────────────────────────────────────────────────────────
 function StatusTick({ status }) {
-  // 1. Sending (Circle/Clock)
-  if (status === 'sending') {
+  if (status === "sending") {
     return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+        stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
     );
   }
-
-  // 2. Failed (Red Alert)
-  if (status === 'failed') {
+  if (status === "failed") {
     return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+        stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
     );
   }
-
-  // 3. Seen (Blue Double Tick)
-  if (status === 'seen') {
+  if (status === "seen") {
     return (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 12l5 5L22 7M2 12l5 5L13 11" />
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 12l5 5L22 7M2 12l5 5L13 11"/>
       </svg>
     );
   }
-
-  // 4. Delivered (Grey Double Tick)
-  if (status === 'delivered') {
+  if (status === "delivered") {
     return (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 12l5 5L22 7M2 12l5 5L13 11" />
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 12l5 5L22 7M2 12l5 5L13 11"/>
       </svg>
     );
   }
-
-  // 5. Default/Sent (Single Grey Tick)
+  // sent
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
 }
 
-// 2. Update MessageBubble to receive 'isLast'
-function MessageBubble({ message, isOwn, isLast }) { 
-  const content = message.message;
+// ── Hover action button (emoji trigger) ───────────────────────────────────────
+function HoverActions({ isOwn, onEmojiClick, visible }) {
+  if (!visible) return null;
+  return (
+    <button
+      aria-label="Add reaction"
+      onClick={onEmojiClick}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "3px 5px",
+        borderRadius: "6px",
+        color: "#a0a0b8",
+        fontSize: "16px",
+        lineHeight: 1,
+        transition: "color 0.1s, background 0.1s",
+        alignSelf: "center",
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = "#6c63ff";
+        e.currentTarget.style.background = "#f0efff";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = "#a0a0b8";
+        e.currentTarget.style.background = "none";
+      }}
+    >
+      {/* Smiley + plus icon */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
+        <line x1="9" y1="9" x2="9.01" y2="9"/>
+        <line x1="15" y1="9" x2="15.01" y2="9"/>
+        <line x1="19" y1="5" x2="22" y2="5"/>
+        <line x1="20.5" y1="3.5" x2="20.5" y2="6.5"/>
+      </svg>
+    </button>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+function MessageBubble({ message, isOwn, isLast, authUserId, userMap, onReact, reactions, senderName  }) {
+  const [hovered, setHovered]           = useState(false);
+  const [pickerOpen, setPickerOpen]     = useState(false);
+  const containerRef                    = useRef(null);
+
+  const content    = message.message;
   const timeString = useMemo(() => formatTime(message.created_at), [message.created_at]);
 
   const [bgColor, textColor] = useMemo(
-    () => getAvatarColors(message.sender_name),
-    [message.sender_name]
+    () => getAvatarColors(senderName),
+    [senderName]
   );
 
+  const handleEmojiClick = useCallback((e) => {
+    e.stopPropagation();
+    setPickerOpen((p) => !p);
+  }, []);
+
+  const handleReactionSelect = useCallback((emoji) => {
+    onReact?.(message.id, emoji);
+  }, [message.id, onReact]);
+
+  const hasReactions = reactions && Object.keys(reactions).length > 0;
+
   return (
-    <div className={`flex w-full mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex gap-3 max-w-[75%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div
+      ref={containerRef}
+      className={`flex w-full ${hasReactions ? "mb-6" : "mb-4"} ${isOwn ? "justify-end" : "justify-start"}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); }}
+    >
+      {/* Inner row: avatar + bubble + hover action */}
+      <div
+        className={`flex gap-2 max-w-[75%] items-end ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+        style={{ position: "relative" }}
+      >
+        {/* Avatar — only for other user's messages */}
         {!isOwn && (
-          <div className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold mt-1 uppercase" style={{ background: bgColor, color: textColor }}>
-            {message.sender_name?.slice(0, 2) || 'U'}
+          <div
+            className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold uppercase"
+            style={{ background: bgColor, color: textColor, marginBottom: hasReactions ? "22px" : "0" }}
+          >
+            {senderName?.slice(0, 2) || '??'}
           </div>
         )}
 
-        <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-2 rounded-2xl text-sm break-words min-w-[50px] ${isOwn ? 'rounded-tr-none text-white' : 'rounded-tl-none text-[#242424]'}`}
-            style={isOwn ? { background: '#6c63ff', border: '1px solid #5a52e0' } : { background: '#fff', border: '1px solid #f0f0f8' }}>
+        {/* Bubble column */}
+        <div
+          className={`flex flex-col ${isOwn ? "items-end" : "items-start"}`}
+          style={{ position: "relative" }}
+        >
+          {/* Reaction picker — positioned above bubble */}
+          <ReactionPicker
+            isOwn={isOwn}
+            visible={pickerOpen}
+            onSelect={handleReactionSelect}
+            onClose={() => setPickerOpen(false)}
+          />
+
+          {/* Bubble */}
+          <div
+            className={`px-4 py-2 rounded-2xl text-sm break-words min-w-[50px] ${
+              isOwn ? "rounded-tr-none text-white" : "rounded-tl-none text-[#242424]"
+            }`}
+            style={
+              isOwn
+                ? { background: "#6c63ff", border: "1px solid #5a52e0" }
+                : { background: "#fff",    border: "1px solid #f0f0f8" }
+            }
+          >
             {content}
           </div>
 
+          {/* Timestamp + status */}
           <div className="flex items-center gap-1 mt-1 px-1">
-            <span className="text-[10px]" style={{ color: '#c0c0d8' }}>
+            <span className="text-[10px]" style={{ color: "#c0c0d8" }}>
               {timeString}
             </span>
-            {/* 3. Logic: Only show tick if it's your own message AND it's the last one */}
             {isOwn && isLast && <StatusTick status={message.status} />}
           </div>
+
+          {/* Reaction bar — below bubble */}
+          {hasReactions && (
+            <ReactionBar
+              reactions={reactions}
+              authUserId={authUserId}
+              userMap={userMap}
+              onToggle={handleReactionSelect}
+            />
+          )}
         </div>
+
+        {/* Hover action button — emoji trigger */}
+        <HoverActions
+          isOwn={isOwn}
+          visible={hovered || pickerOpen}
+          onEmojiClick={handleEmojiClick}
+        />
       </div>
     </div>
   );
@@ -243,6 +220,10 @@ export default memo(MessageBubble, (prev, next) => {
     prev.message.message === next.message.message &&
     prev.message.status  === next.message.status &&
     prev.isOwn           === next.isOwn &&
-    prev.isLast          === next.isLast
+    prev.isLast          === next.isLast &&
+    prev.reactions       === next.reactions &&   // ref equality — object from reactionStore
+    prev.authUserId      === next.authUserId &&
+    prev.userMap         === next.userMap &&
+    prev.senderName      === next.senderName
   );
 });

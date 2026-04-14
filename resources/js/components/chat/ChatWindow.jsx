@@ -1,23 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import ChatHeader from '@/components/chat/ChatHeader';
 import ChatInput from '@/components/chat/ChatInput';
 import MessageBubble from '@/components/chat/MessageBubble';
+import useReactions from '@/Utils/useReactions';
+
+// ─── Date separator helpers ───────────────────────────────────────────────────
 
 function getDateLabel(dateStr) {
   const date = new Date(dateStr);
-  const now = new Date();
-
+  const now  = new Date();
   const toMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.round((toMidnight(now) - toMidnight(date)) / 86400000);
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-
-  // e.g. "Monday, 31 March" for within the last week, or "31 March 2025" for older
   if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
   }
-
   return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
@@ -33,20 +32,70 @@ function DateSeparator({ label }) {
   );
 }
 
-export default function ChatWindow({ messages = [], selectedUser, onSend, currentUserId, isAdmin = false, onBack, isLoading = false, typing, sendTyping  }) {
+// ─── ChatWindow ───────────────────────────────────────────────────────────────
+
+export default function ChatWindow({
+  messages      = [],
+  selectedUser,
+  onSend,
+  currentUserId,
+  authUser,           // full authUser object — needed for userMap + reactions
+  users        = [],  // full users list from useChat — needed for userMap
+  isAdmin      = false,
+  onBack,
+  isLoading    = false,
+  typing,
+  sendTyping,
+  historyKey,         // from useChat — bumps on every fresh history load
+}) {
   const bottomRef = useRef(null);
 
+  // ── Reactions ──────────────────────────────────────────────────────────────
+  const { toggleReaction, getReactions, seedReactions } = useReactions({
+    convId:     selectedUser?.conversation_id,
+    authUserId: currentUserId,
+  });
+
+  // Seed reactions from history whenever a fresh batch loads.
+  // historyKey changes only on history load, not on every new message,
+  // so this never over-fires.
+  useEffect(() => {
+    if (messages.length) seedReactions(messages);
+  }, [historyKey, seedReactions]);
+
+  // ── userMap for reaction tooltips ──────────────────────────────────────────
+  // { [userId]: firstName } — built from the users list + authUser
+  const userMap = useMemo(() => {
+    const map = {};
+    users.forEach((u) => {
+      map[u.id] = u.name?.split(' ')[0] ?? `User ${u.id}`;
+    });
+    if (authUser) map[authUser.id] = 'You';
+    return map;
+  }, [users, authUser]);
+
+  // ── Scroll behaviour ───────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
+  // ── Find last own message index (for status tick) ──────────────────────────
+  const lastOwnIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (Number(messages[i].sender_id) === Number(currentUserId)) return i;
+    }
+    return -1;
+  }, [messages, currentUserId]);
+
+  // ── Empty / no selection state ─────────────────────────────────────────────
   if (!selectedUser) {
     return (
       <div className="flex flex-col flex-1 h-screen bg-[#fafafa]">
         <ChatHeader selectedUser={null} isAdmin={isAdmin} />
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
           <div className="w-16 h-16 bg-[#edebe9] rounded-full flex items-center justify-center mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5b5fc7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="#5b5fc7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
@@ -57,7 +106,8 @@ export default function ChatWindow({ messages = [], selectedUser, onSend, curren
     );
   }
 
-const renderMessages = () => {
+  // ── Message list renderer ──────────────────────────────────────────────────
+  const renderMessages = () => {
     if (isLoading) {
       return (
         <div className="flex flex-col gap-3 py-2">
@@ -87,7 +137,6 @@ const renderMessages = () => {
     const items = [];
     let lastDateLabel = null;
 
-    // Use only ONE loop and pass index
     messages.forEach((msg, index) => {
       const label = getDateLabel(msg.created_at);
 
@@ -96,19 +145,21 @@ const renderMessages = () => {
         lastDateLabel = label;
       }
 
-      // Find the last message sent by the current user (not just the last message overall)
-      const isLastOwnMessage =
-        Number(msg.sender_id) === Number(currentUserId) &&
-        messages
-          .slice(index + 1)
-          .every((m) => Number(m.sender_id) !== Number(currentUserId));
-
       items.push(
         <MessageBubble
           key={msg.id}
           message={msg}
           isOwn={Number(msg.sender_id) === Number(currentUserId)}
-          isLast={isLastOwnMessage}
+          isLast={index === lastOwnIndex}
+          authUserId={currentUserId}
+          userMap={userMap}
+          reactions={getReactions(msg.id)}
+          onReact={toggleReaction}
+          senderName={
+            Number(msg.sender_id) === Number(currentUserId)
+              ? authUser?.name
+              : selectedUser?.name
+          }
         />
       );
     });
@@ -116,6 +167,7 @@ const renderMessages = () => {
     return items;
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col flex-1 h-screen bg-[#fafafa] min-w-0">
       <div className="relative shrink-0">
@@ -124,7 +176,8 @@ const renderMessages = () => {
             onClick={onBack}
             className="md:hidden absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 hover:bg-gray-100 rounded-md text-gray-500"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6"/>
             </svg>
           </button>
@@ -139,7 +192,7 @@ const renderMessages = () => {
 
       {typing?.[selectedUser.id] && (
         <div className="text-xs text-gray-400 px-3 py-1">
-          Typing...
+          {selectedUser.name?.split(' ')[0]} is typing…
         </div>
       )}
 

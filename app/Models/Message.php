@@ -18,6 +18,8 @@ class Message extends Model
         'seen_at' => 'datetime',
     ];
 
+    protected $appends = ['formatted_reactions'];
+
     public function sender()
     {
         return $this->belongsTo(
@@ -32,5 +34,21 @@ class Message extends Model
             Conversation::class,  // kis model se relation
             'conversation_id'     // foreign key
         );
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
+    public function getFormattedReactionsAttribute(): array
+    {
+        return $this->reactions
+            ->groupBy('emoji')
+            ->map(fn($group) => [
+                'count' => $group->count(),
+                'users' => $group->pluck('user_id')->toArray(),
+            ])
+            ->toArray();
     }
 }

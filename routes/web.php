@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ReactionController;
 use Inertia\Inertia;
 
 Route::get('/login', [AuthController::class, 'showLogin']);
@@ -33,6 +34,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/messages/delivered', [ChatController::class, 'markDelivered']);
     Route::post('/messages/seen', [ChatController::class, 'markSeen']);
     Route::post('/typing', [ChatController::class, 'typing']);
+
+    Route::post('/messages/{message}/reactions', [ReactionController::class, 'toggle']);
+    Route::get('/messages/{message}/reactions',  [ReactionController::class, 'index']);
 });
 
 // Route::get('/dashboard', function () {

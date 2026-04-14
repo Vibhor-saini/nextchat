@@ -55,9 +55,26 @@ class ChatController extends Controller
             if ($conversation) {
 
                 $chatHistory = $conversation->messages()
-                    ->with('sender:id,name')
-                    ->orderBy('created_at', 'asc')
-                    ->get(['id', 'conversation_id', 'sender_id', 'message', 'created_at', 'delivered_at', 'seen_at']);
+                ->with([
+                    'sender:id,name',
+                    'reactions:id,message_id,user_id,emoji',
+                ])
+                ->orderBy('created_at', 'asc')
+                ->get(['id', 'conversation_id', 'sender_id', 'message', 'created_at', 'delivered_at', 'seen_at'])
+                ->map(fn($msg) => [
+                    'id'              => $msg->id,
+                    'conversation_id' => $msg->conversation_id,
+                    'sender_id'       => $msg->sender_id,
+                    'sender_name'     => $msg->sender?->name,
+                    'message'         => $msg->message,
+                    'created_at'      => $msg->created_at,
+                    'delivered_at'    => $msg->delivered_at,
+                    'seen_at'         => $msg->seen_at,
+                    'reactions'       => $msg->formatted_reactions,
+                    'status'          => $msg->seen_at      ? 'seen'
+                       : ($msg->delivered_at ? 'delivered'
+                       : 'sent'),  
+                ]);
             }
         }
  

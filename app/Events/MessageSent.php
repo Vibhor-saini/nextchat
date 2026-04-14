@@ -18,12 +18,12 @@ class MessageSent implements ShouldBroadcastNow
 
     public function __construct($message, $client_id = null, $receiver_id = null)
     {
-        Log::info('Broadcasting message:', [
-            'id'              => $message->id,
-            'sender_id'       => $message->sender_id,
-            'conversation_id' => $message->conversation_id,
-            'receiver_id'     => $receiver_id,
-        ]);
+        // Log::info('Broadcasting message:', [
+        //     'id'              => $message->id,
+        //     'sender_id'       => $message->sender_id,
+        //     'conversation_id' => $message->conversation_id,
+        //     'receiver_id'     => $receiver_id,
+        // ]);
 
         $this->message     = $message->load('sender');
         $this->client_id   = $client_id;

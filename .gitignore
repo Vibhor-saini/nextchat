@@ -20,5 +20,6 @@
 /storage/pail
 /vendor
 Homestead.json
+index.php
 Homestead.yaml
 Thumbs.db
